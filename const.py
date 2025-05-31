@@ -1,40 +1,18 @@
 # custom_components/router_traffic_sensor/const.py
 
-DOMAIN = "router_traffic_sensor"
-DEFAULT_SCAN_INTERVAL_SECONDS = 5 # Intervalo de atualização. 10 segundos é um bom compromisso para tráfego.
+# Importe as constantes padrão do Home Assistant aqui
+from homeassistant.const import (
+    CONF_HOST,          # A constante CONF_HOST também deve vir do HA core, não definida aqui
+    CONF_USERNAME,      # O valor disto é "username"
+    CONF_PASSWORD,      # O valor disto é "password"
+    CONF_SCAN_INTERVAL, # O valor disto é "scan_interval"
+)
 
-CONF_HOST = "192.168.1.254"
-CONF_USERNAME = "meo"
-CONF_PASSWORD = "meo"
+DOMAIN = "HA_MEO_router_traffic_monitor" # Mantenha o seu domínio consistente com a pasta!
+DEFAULT_SCAN_INTERVAL_SECONDS = 5 # 5 minutos (300 segundos) como padrão
 
 # Nomes das colunas na API (ajuste conforme necessário)
-# Assumindo a ordem das colunas no HTML como:
-# 0: Interface Name (eth0, eth1, etc.)
-# 1: Rx Bytes (Received Bytes)
-# 2: Rx Packets
-# 3: Rx Errors
-# 4: Rx Dropped
-# 5: Tx Bytes (Transmitted Bytes) - O que você chamou de "Download"
-# 6: Tx Packets
-# 7: Tx Errors
-# 8: Tx Dropped
-# ... e o resto dos 8 campos para completar 16
-
-# ATENÇÃO: As posições de download/upload que você sugeriu no JS (data[0] para download e data[8] para upload)
-# não correspondem ao exemplo HTML que você forneceu.
-# No HTML, as colunas são:
-# <td class='hd'>eth0</td>
-# <td>1284674331</td> <- Index 0 (Rx Bytes)
-# <td>12041400</td> <- Index 1 (Rx Packets)
-# ...
-# <td>1186628879</td> <- Index 8 (Tx Bytes)
-
-# Ajustarei para Rx Bytes (Index 0) e Tx Bytes (Index 8) no array `data` PARSED.
-# Considere "Download" como Rx Bytes e "Upload" como Tx Bytes.
-# Confirme estas posições no seu router!
-
-# Mapeamento para as colunas relevantes no array `data` depois do parsing do HTML
-# Rx Bytes (recebido - download)
+# ... (seus índices da tabela HTML)
 API_RX_BYTES_IDX = 0
-# Tx Bytes (transmitido - upload)
 API_TX_BYTES_IDX = 8
+API_INTERFACE_NAME_IDX = 0 # Adicionei este para consistência, se não tiver, pode remover
