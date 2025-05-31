@@ -25,13 +25,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     password = entry.data[CONF_PASSWORD]
     
     # Obter o intervalo de atualização das opções, ou usar o padrão
-    scan_interval = entry.options.get(CONF_SCAN_INTERVAL_SECONDS, DEFAULT_SCAN_INTERVAL_SECONDS)
+    # É importante aceder às opções via 'entry.options'
+    scan_interval = entry.options.get(DEFAULT_SCAN_INTERVAL_SECONDS, DEFAULT_SCAN_INTERVAL_SECONDS) # Use DEFAULT_SCAN_INTERVAL_SECONDS como chave padrão
     
     session = async_get_clientsession(hass)
     api_client = RouterApiClient(host, username, password, session)
 
     # Coordenador de atualização de dados
-    coordinator = RouterTrafficSensorCoordinator(hass, api_client, scan_interval)
+    # MUDANÇA AQUI: Passar a 'entry' diretamente para o coordenador
+    coordinator = RouterTrafficSensorCoordinator(hass, entry, api_client, scan_interval) 
     
     # Atualizar os dados pela primeira vez para verificar a conectividade
     try:
@@ -74,10 +76,11 @@ async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
 class RouterTrafficSensorCoordinator(DataUpdateCoordinator):
     """Router Traffic Sensor data update coordinator."""
 
-    def __init__(self, hass: HomeAssistant, api_client: RouterApiClient, update_interval_seconds: int):
+    # MUDANÇA AQUI: Adicionar 'entry' como argumento e armazená-la
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, api_client: RouterApiClient, update_interval_seconds: int):
         """Initialize my coordinator."""
         self.api_client = api_client
-        self.config_entry = hass.config_entries.async_get_entry(self.config_entry.entry_id) # Para aceder às opções
+        self.config_entry = entry # <--- ARMAZENAR A ENTRADA DE CONFIGURAÇÃO DIRETAMENTE
         
         super().__init__(
             hass,
