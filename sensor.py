@@ -277,21 +277,10 @@ class RouterTrafficSpeedSensor(RouterTrafficSensorBase, SensorEntity):
         
         # Verificar se o valor não é None e se é numérico antes de arredondar
         if isinstance(raw_value, (int, float)):
-            # Determine o arredondamento com base na unidade ou nos valores esperados.
-            # Se a unidade for B/s (Bytes por segundo), talvez não precise de casas decimais
-            # para números grandes, ou 2 casas para valores menores.
-            if self._unit == UnitOfDataRate.BYTES_PER_SECOND: # Exemplo: 'B/s'
-                # Você pode optar por arredondar para o número inteiro mais próximo
-                return round(raw_value)
-            elif self._unit == UnitOfDataRate.MEGABYTES_PER_SECOND: # Exemplo: 'MB/s'
-                # Se o valor já estiver em MB/s e quer 2 casas decimais
-                return round((raw_value / (1024 * 1024)), 2)
-            elif self._unit == UnitOfDataRate.KILOBYTES_PER_SECOND: # Exemplo: 'kB/s'
-                # Se o valor já estiver em kB/s e quer 2 casas decimais
-                return round(raw_value, 2)
-            # Adicione mais condições conforme as unidades que você passa.
-            # Se não houver uma condição específica, arredonde para 2 casas decimais por padrão para velocidades
-            return round(raw_value, 2) 
+            # Converter de Bytes/s para Megabits/s
+            # (Bytes * 8) para bits, depois / (1000 * 1000) para Megabits
+            value_mbits_per_second = (raw_value / (1024 * 1024))
+            return round(value_mbits_per_second, 2) # Arredonda para 2 casas decimais
         return 0
 
     @property
