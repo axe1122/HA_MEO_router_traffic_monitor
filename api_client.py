@@ -40,12 +40,12 @@ class RouterApiClient:
             if response.status == 200:
                  _LOGGER.warning("Authentication returned 200 OK without redirect. Check if SESSIONID is needed or obtained.")
             elif response.status == 302:
-                _LOGGER.debug("Authentication redirect detected.")
+                _LOGGER.warning("Authentication redirect detected.")
             else:
                 response.raise_for_status()
 
             set_cookie_header = response.headers.getall("Set-Cookie", [])
-            _LOGGER.debug("Set-Cookie headers received: %s", set_cookie_header)
+            _LOGGER.warning("Set-Cookie headers received: %s", set_cookie_header)
 
             session_cookie = next((c for c in set_cookie_header if "SESSIONID=" in c), None)
             if not session_cookie:
@@ -54,7 +54,7 @@ class RouterApiClient:
             match = re.search(r"SESSIONID=([^;]+)", session_cookie)
             if match:
                 self._session_id = match.group(0)
-                _LOGGER.debug("Successfully obtained SESSIONID: %s", self._session_id)
+                _LOGGER.warning("Successfully obtained SESSIONID: %s", self._session_id)
             else:
                 raise ValueError("Failed to extract SESSIONID from cookie string.")
 
