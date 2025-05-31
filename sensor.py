@@ -277,10 +277,7 @@ class RouterTrafficSpeedSensor(RouterTrafficSensorBase, SensorEntity):
         
         # Verificar se o valor não é None e se é numérico antes de arredondar
         if isinstance(raw_value, (int, float)):
-            # Converter de Bytes/s para Megabits/s
-            # (Bytes * 8) para bits, depois / (1000 * 1000) para Megabits
-            value_mbits_per_second = (raw_value / (1024 * 1024))
-            return round(value_mbits_per_second, 2) # Arredonda para 2 casas decimais
+            return round((raw_value / 1024), 2) # Arredonda para 2 casas decimais
         return 0
 
     @property
