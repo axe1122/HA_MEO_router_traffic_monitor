@@ -268,9 +268,21 @@ class RouterTrafficSpeedSensor(RouterTrafficSensorBase, SensorEntity):
 
     @property
     def native_value(self):
-        """Return the state of the sensor."""
-        # Aceder aos dados da interface individual
-        return self.coordinator.data.get("interfaces", {}).get(self._interface, {}).get(self._data_key, 0)
+        """Return the state of the sensor (speed)."""
+        if self.coordinator.data and self._interface_name in self.coordinator.data['interfaces']:
+            interface_data = self.coordinator.data['interfaces'][self._interface_name]
+            value = None
+            if self._direction == "download":
+                value = interface_data.get('rx_speed')
+            elif self._direction == "upload":
+                value = interface_data.get('tx_speed')
+            
+            if value is not None:
+                # Arredonda para 2 casas decimais. Ajuste conforme a sua unidade.
+                # Se o valor é em B/s e quer MB/s com 2 casas: round(value / (1024 * 1024), 2)
+                # Se o valor já está numa unidade de velocidade e quer apenas arredondar:
+                round(value / (1024 * 1024), 2) # <-- AQUI ESTÁ O ARREDONDAMENTO
+        return None
 
     @property
     def icon(self) -> str | None:
@@ -291,10 +303,20 @@ class RouterTrafficTotalBytesSensor(RouterTrafficSensorBase, SensorEntity):
     @property
     def native_value(self):
         """Return the state of the sensor (total bytes)."""
-        raw_data = self.coordinator.data.get("interfaces", {}).get(self._interface, {}).get("raw", [])
-        if self._data_index < len(raw_data):
-            return raw_data[self._data_index]
-        return 0
+        if self.coordinator.data and self._interface_name in self.coordinator.data['interfaces']:
+            interface_data = self.coordinator.data['interfaces'][self._interface_name]
+            value = None
+            if self._direction == "download":
+                value = interface_data.get('rx_bytes')
+            elif self._direction == "upload":
+                value = interface_data.get('tx_bytes')
+            
+            if value is not None:
+                # Exemplo: Se quiser converter para GB e arredondar para 3 casas decimais
+                # return round(value / (1024 * 1024 * 1024), 3) # <-- CONVERSÃO E ARREDONDAMENTO
+                # Se quiser manter em B, arredondar pode não ser necessário, mas pode ser útil para formatação
+                return round(value / (1024 * 1024 * 1024), 3) # <-- Arredonda para o número inteiro mais próximo, se necessário
+        return None
 
     @property
     def icon(self) -> str | None:
