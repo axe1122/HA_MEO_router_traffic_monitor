@@ -86,7 +86,7 @@ async def async_setup_entry(
             "ethernet",
             "download_speed",
             "Router Ethernet Download Speed",
-            UnitOfDataRate.BYTES_PER_SECOND,
+            UnitOfDataRate.MEGABYTES_PER_SECOND,
             SensorDeviceClass.DATA_RATE,
             SensorStateClass.MEASUREMENT,
         )
@@ -97,7 +97,7 @@ async def async_setup_entry(
             "ethernet",
             "upload_speed",
             "Router Ethernet Upload Speed",
-            UnitOfDataRate.BYTES_PER_SECOND,
+            UnitOfDataRate.MEGABYTES_PER_SECOND,
             SensorDeviceClass.DATA_RATE,
             SensorStateClass.MEASUREMENT,
         )
@@ -110,7 +110,7 @@ async def async_setup_entry(
             "wifi",
             "download_speed",
             "Router Wi-Fi Download Speed",
-            UnitOfDataRate.BYTES_PER_SECOND,
+            UnitOfDataRate.MEGABYTES_PER_SECOND,
             SensorDeviceClass.DATA_RATE,
             SensorStateClass.MEASUREMENT,
         )
@@ -121,7 +121,7 @@ async def async_setup_entry(
             "wifi",
             "upload_speed",
             "Router Wi-Fi Upload Speed",
-            UnitOfDataRate.BYTES_PER_SECOND,
+            UnitOfDataRate.MEGABYTES_PER_SECOND,
             SensorDeviceClass.DATA_RATE,
             SensorStateClass.MEASUREMENT,
         )
@@ -134,7 +134,7 @@ async def async_setup_entry(
             "global",
             "download_speed",
             "Router Global Download Speed",
-            UnitOfDataRate.BYTES_PER_SECOND,
+            UnitOfDataRate.MEGABYTES_PER_SECOND,
             SensorDeviceClass.DATA_RATE,
             SensorStateClass.MEASUREMENT,
         )
