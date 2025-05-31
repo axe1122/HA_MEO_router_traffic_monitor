@@ -277,7 +277,7 @@ class RouterTrafficSpeedSensor(RouterTrafficSensorBase, SensorEntity):
         
         # Verificar se o valor não é None e se é numérico antes de arredondar
         if isinstance(raw_value, (int, float)):
-            return round((raw_value / 1024), 2) # Arredonda para 2 casas decimais
+            return round(raw_value, 2) # Arredonda para 2 casas decimais
         return 0
 
     @property
