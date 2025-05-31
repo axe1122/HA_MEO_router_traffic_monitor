@@ -1,0 +1,12 @@
+{
+  "domain": "router_traffic_sensor",
+  "name": "MEO Router Traffic Sensor",
+  "codeowners": ["@axe1122"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/axe1122/MEO_router_traffic_sensor",
+  "issue_tracker": "https://github.com/axe1122/MEO_router_traffic_sensor/issues",
+  "requirements": ["aiohttp>=3.8.0", "beautifulsoup4>=4.10.0"],
+  "version": "1.0.0",
+  "iot_class": "local_polling"
+}
