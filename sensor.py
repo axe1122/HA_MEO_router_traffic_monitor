@@ -285,7 +285,7 @@ class RouterTrafficSpeedSensor(RouterTrafficSensorBase, SensorEntity):
                 return round(raw_value)
             elif self._unit == UnitOfDataRate.MEGABYTES_PER_SECOND: # Exemplo: 'MB/s'
                 # Se o valor já estiver em MB/s e quer 2 casas decimais
-                return round(raw_value, 2)
+                return round((raw_value / (1024 * 1024)), 2)
             elif self._unit == UnitOfDataRate.KILOBYTES_PER_SECOND: # Exemplo: 'kB/s'
                 # Se o valor já estiver em kB/s e quer 2 casas decimais
                 return round(raw_value, 2)
