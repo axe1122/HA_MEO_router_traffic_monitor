@@ -1,5 +1,5 @@
 {
-  "domain": "router_traffic_sensor",
+  "domain": "HA_MEO_router_traffic_monitor",
   "name": "MEO Router Traffic Sensor",
   "codeowners": ["@axe1122"],
   "config_flow": true,
