@@ -9,78 +9,89 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
+# Importe as constantes definidas na sua integração
 from .const import DOMAIN, CONF_HOST, CONF_USERNAME, CONF_PASSWORD, DEFAULT_SCAN_INTERVAL_SECONDS
+# Importe o seu cliente de API personalizado
 from .api_client import RouterApiClient
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = ["sensor"] # Define as plataformas que a integração oferece (neste caso, apenas sensor)
+# Define as plataformas que a sua integração oferece (neste caso, apenas sensores)
+PLATFORMS = ["sensor"]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Router Traffic Sensor from a config entry."""
-    _LOGGER.debug("Setting up config entry for %s", entry.entry_id)
+    """Configura o sensor de tráfego do router a partir de uma entrada de configuração."""
+    _LOGGER.debug("A configurar a entrada de configuração para %s", entry.entry_id)
 
+    # Extrai os dados de configuração da entrada
     host = entry.data[CONF_HOST]
     username = entry.data[CONF_USERNAME]
     password = entry.data[CONF_PASSWORD]
     
-    # Obter o intervalo de atualização das opções, ou usar o padrão
-    # É importante aceder às opções via 'entry.options'
-    scan_interval = entry.options.get(DEFAULT_SCAN_INTERVAL_SECONDS, DEFAULT_SCAN_INTERVAL_SECONDS) # Use DEFAULT_SCAN_INTERVAL_SECONDS como chave padrão
+    # Obtém o intervalo de atualização das opções da entrada, ou usa o valor padrão
+    # Nota: CONF_SCAN_INTERVAL vem do Home Assistant core, DEFAULT_SCAN_INTERVAL_SECONDS vem do seu const.py
+    scan_interval = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_SECONDS)
     
+    # Obtém uma sessão HTTP assíncrona do Home Assistant
     session = async_get_clientsession(hass)
+    # Inicializa o seu cliente de API personalizado
     api_client = RouterApiClient(host, username, password, session)
 
-    # Coordenador de atualização de dados
-    # MUDANÇA AQUI: Passar a 'entry' diretamente para o coordenador
-    coordinator = RouterTrafficSensorCoordinator(hass, entry, api_client, scan_interval) 
+    # Cria e inicializa o coordenador de atualização de dados
+    coordinator = RouterTrafficSensorCoordinator(
+        hass,
+        entry,          # Passa a entrada de configuração diretamente para o coordenador
+        api_client,
+        scan_interval
+    )
     
-    # Atualizar os dados pela primeira vez para verificar a conectividade
+    # Realiza a primeira atualização de dados para verificar a conectividade e carregar dados iniciais
     try:
         await coordinator.async_config_entry_first_refresh()
     except Exception as e:
-        _LOGGER.error("Failed to connect to router at %s: %s", host, e)
+        _LOGGER.error("Falha ao conectar ao router em %s: %s", host, e)
         # Se a primeira atualização falhar, a integração não deve ser configurada
-        raise ConfigEntryNotReady from e
+        raise ConfigEntryNotReady(f"Falha ao conectar ou autenticar com o router: {e}") from e
 
+    # Armazena o coordenador no objeto 'hass.data' para que as plataformas (sensores) possam aceder a ele
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
 
-    # Carregar as plataformas (neste caso, o sensor)
+    # Carrega as plataformas definidas (sensor.py neste caso)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    # Adicionar um listener para lidar com atualizações de opções da configuração
+    # Adiciona um listener para recarregar a integração quando as opções são alteradas
     entry.add_update_listener(async_reload_entry)
 
-    _LOGGER.info("Router Traffic Sensor integration for %s setup successful", host)
+    _LOGGER.info("Integração do Sensor de Tráfego do Router para %s configurada com sucesso", host)
     return True
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload a config entry."""
-    _LOGGER.debug("Unloading config entry for %s", entry.entry_id)
-    # Descarregar as plataformas (neste caso, o sensor)
+    """Descarrega uma entrada de configuração."""
+    _LOGGER.debug("A descarregar a entrada de configuração para %s", entry.entry_id)
+    # Descarrega as plataformas registadas
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
-        # Remover o coordenador dos dados do Home Assistant
+        # Remove o coordenador dos dados do Home Assistant
         hass.data[DOMAIN].pop(entry.entry_id)
-        if not hass.data[DOMAIN]: # Se não houver mais entradas para esta integração
+        # Se não houver mais entradas para este domínio, remove o domínio do hass.data
+        if not hass.data[DOMAIN]: 
             hass.data.pop(DOMAIN)
-        _LOGGER.info("Router Traffic Sensor integration for %s unloaded successfully", entry.data[CONF_HOST])
+        _LOGGER.info("Integração do Sensor de Tráfego do Router para %s descarregada com sucesso", entry.data[CONF_HOST])
     return unload_ok
 
 async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Reload config entry."""
-    _LOGGER.debug("Reloading config entry for %s", entry.entry_id)
+    """Recarrega a entrada de configuração quando as opções são alteradas."""
+    _LOGGER.debug("A recarregar a entrada de configuração para %s", entry.entry_id)
     await hass.config_entries.async_reload(entry.entry_id)
 
 
 class RouterTrafficSensorCoordinator(DataUpdateCoordinator):
-    """Router Traffic Sensor data update coordinator."""
+    """Coordenador de atualização de dados para o sensor de tráfego do router."""
 
-    # MUDANÇA AQUI: Adicionar 'entry' como argumento e armazená-la
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, api_client: RouterApiClient, update_interval_seconds: int):
-        """Initialize my coordinator."""
+        """Inicializa o coordenador."""
         self.api_client = api_client
-        self.config_entry = entry # <--- ARMAZENAR A ENTRADA DE CONFIGURAÇÃO DIRETAMENTE
+        self.config_entry = entry # Armazena a entrada de configuração para acesso posterior (ex: opções)
         
         super().__init__(
             hass,
@@ -88,16 +99,17 @@ class RouterTrafficSensorCoordinator(DataUpdateCoordinator):
             name=DOMAIN,
             update_interval=timedelta(seconds=update_interval_seconds), # Define o intervalo de atualização
         )
-        _LOGGER.debug("Coordinator initialized with update interval: %s seconds", update_interval_seconds)
+        _LOGGER.debug("Coordenador inicializado com intervalo de atualização: %s segundos", update_interval_seconds)
 
     async def _async_update_data(self):
-        """Fetch data from router API."""
+        """Busca dados da API do router. Este é o método chamado pelo coordenador."""
         try:
-            _LOGGER.debug("Fetching data from router via coordinator...")
-            # Aqui é onde os dados são realmente buscados
+            _LOGGER.debug("A buscar dados do router via coordenador...")
+            # Realiza a chamada à API usando o cliente
             data = await self.api_client.async_get_stats()
-            _LOGGER.debug("Data fetched successfully. Interfaces found: %s", list(data.get("interfaces", {}).keys()))
+            _LOGGER.debug("Dados buscados com sucesso. Interfaces encontradas: %s", list(data.get("interfaces", {}).keys()))
             return data
         except Exception as err:
-            _LOGGER.error("Error communicating with router: %s", err)
-            raise UpdateFailed(f"Error communicating with router: {err}")
+            _LOGGER.error("Erro na comunicação com o router: %s", err)
+            # Lança UpdateFailed para sinalizar ao Home Assistant que a atualização falhou
+            raise UpdateFailed(f"Erro na comunicação com o router: {err}")
