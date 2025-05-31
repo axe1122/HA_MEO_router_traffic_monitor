@@ -164,12 +164,12 @@ class RouterApiClient:
                     upload_diff = (2**32 - previous_tx_bytes) + current_tx_bytes
                     _LOGGER.warning("Tx Bytes counter for %s wrapped. Diff: %s", interface, upload_diff)
                 
-                download_speed = (download_diff / elapsed_seconds) / 1_048_576  # Convert bytes to MB/s
-                upload_speed = (upload_diff / elapsed_seconds) / 1_048_576  # Convert bytes to MB/s
+                download_speed = (download_diff / elapsed_seconds) / 1024  # Convert bytes to MB/s
+                upload_speed = (upload_diff / elapsed_seconds) / 1024  # Convert bytes to MB/s
             
             speeds_per_interface[interface] = {                                
                 "download": download_speed ,  # Convert bytes to MB
-                "upload": upload_speed / 1_048_576,      # Convert bytes to MB
+                "upload": upload_speed,      # Convert bytes to MB
                 "raw": curr_row["data"],
             }
 
