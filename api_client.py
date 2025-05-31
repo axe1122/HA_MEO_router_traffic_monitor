@@ -11,6 +11,8 @@ from bs4 import BeautifulSoup
 
 _LOGGER = logging.getLogger(__name__)
 
+# --- Mantém o restante da classe RouterApiClient igual até aqui ---
+
 class RouterApiClient:
     """Client for router API."""
 
@@ -24,7 +26,6 @@ class RouterApiClient:
         self._previous_stats: Dict[str, Any] = {} # Para guardar o estado anterior do tráfego
         self._last_update_time: Optional[datetime] = None
 
-
     async def _authenticate(self) -> None:
         """Perform authentication and get SESSIONID."""
         auth_string = f"{self._username}:{self._password}"
@@ -37,12 +38,11 @@ class RouterApiClient:
         _LOGGER.debug("Attempting to authenticate to %s", auth_url)
         async with self._session.get(auth_url, headers=headers, allow_redirects=False, timeout=10) as response:
             if response.status == 200:
-                 # Pode não haver set-cookie se já autenticado ou se for um router que não usa
-                _LOGGER.warning("Authentication returned 200 OK without redirect. Check if SESSIONID is needed or obtained.")
-            elif response.status == 302: # Redirecionamento indica sucesso na autenticação
+                 _LOGGER.warning("Authentication returned 200 OK without redirect. Check if SESSIONID is needed or obtained.")
+            elif response.status == 302:
                 _LOGGER.debug("Authentication redirect detected.")
             else:
-                response.raise_for_status() # Levanta exceção para outros erros HTTP
+                response.raise_for_status()
 
             set_cookie_header = response.headers.getall("Set-Cookie", [])
             _LOGGER.debug("Set-Cookie headers received: %s", set_cookie_header)
@@ -51,10 +51,9 @@ class RouterApiClient:
             if not session_cookie:
                 raise ValueError("SESSIONID cookie not found in response headers.")
             
-            # Extrair apenas o valor do SESSIONID
             match = re.search(r"SESSIONID=([^;]+)", session_cookie)
             if match:
-                self._session_id = match.group(0) # Ex: SESSIONID=ca9373723...
+                self._session_id = match.group(0)
                 _LOGGER.debug("Successfully obtained SESSIONID: %s", self._session_id)
             else:
                 raise ValueError("Failed to extract SESSIONID from cookie string.")
@@ -62,7 +61,7 @@ class RouterApiClient:
     async def _get_raw_stats(self) -> Dict[str, Any]:
         """Fetch raw statistics from the router."""
         if not self._session_id:
-            await self._authenticate() # Autentica se não tiver SESSIONID
+            await self._authenticate()
 
         headers = {
             "Cookie": self._session_id
@@ -89,13 +88,12 @@ class RouterApiClient:
 
             interface_name = tds[0].get_text(strip=True)
             
-            # Extrair os dados numéricos
             data_values = []
-            for i in range(1, len(tds)): # Começa do segundo <td>
+            for i in range(1, len(tds)):
                 try:
                     data_values.append(int(tds[i].get_text(strip=True)))
                 except ValueError:
-                    data_values.append(0) # Default para 0 se não for um número
+                    data_values.append(0)
 
             result.append({
                 "interface": interface_name,
@@ -104,80 +102,130 @@ class RouterApiClient:
         _LOGGER.debug("Parsed HTML table: %s", result)
         return result
 
-    def _calculate_speed(self, current_stats: List[Dict[str, Any]], elapsed_seconds: float) -> Dict[str, Any]:
-        """Calculate download and upload speeds."""
-        speeds = {}
+    def _calculate_and_categorize_stats(self, current_parsed_stats: List[Dict[str, Any]], elapsed_seconds: float) -> Dict[str, Any]:
+        """
+        Calculate speeds and categorize stats (per interface, wifi, ethernet, global).
+        Returns a dictionary like:
+        {
+            "interfaces": { "eth0": {"download": X, "upload": Y, "raw": [...]}, ... },
+            "totals": {
+                "ethernet_download": Z, "ethernet_upload": W,
+                "wifi_download": A, "wifi_upload": B,
+                "global_download": C, "global_upload": D,
+                "ethernet_raw_rx": E, "ethernet_raw_tx": F, # etc for all 16 raw indices
+                ...
+            }
+        }
+        """
+        speeds_per_interface = {}
         
-        for curr_row in current_stats:
+        # Initialize totals for this update cycle
+        total_ethernet_download_speed = 0
+        total_ethernet_upload_speed = 0
+        total_wifi_download_speed = 0
+        total_wifi_upload_speed = 0
+
+        # Initialize raw byte totals
+        # Assuming 16 raw data points per interface
+        total_ethernet_raw_data = [0] * 16
+        total_wifi_raw_data = [0] * 16
+        
+
+        for curr_row in current_parsed_stats:
             interface = curr_row["interface"]
             prev_row = self._previous_stats.get(interface)
-
-            if not prev_row or elapsed_seconds <= 0:
-                # Não há dados anteriores ou tempo decorrido inválido, não podemos calcular a velocidade
-                speeds[interface] = {"download": 0, "upload": 0, "raw": curr_row["data"]}
-                continue
-
-            # ATENÇÃO: Confirme que estes são os índices corretos para Rx Bytes e Tx Bytes
-            # no array 'data' (depois do parsing).
-            # Baseado no seu HTML, é provável que Rx Bytes seja index 0 e Tx Bytes seja index 8.
-            current_rx_bytes = curr_row["data"][0] if len(curr_row["data"]) > 0 else 0
-            previous_rx_bytes = prev_row["data"][0] if len(prev_row["data"]) > 0 else 0
-
-            current_tx_bytes = curr_row["data"][8] if len(curr_row["data"]) > 8 else 0
-            previous_tx_bytes = prev_row["data"][8] if len(prev_row["data"]) > 8 else 0
             
-            # Lidar com reinícios do contador (wraparound)
-            # Se o contador atual for menor que o anterior, assumimos que reiniciou.
-            # Isso é uma suposição para contadores de 32 bits que rolam.
-            # Se forem de 64 bits ou maiores, a diferença sempre será positiva.
-            download_diff = current_rx_bytes - previous_rx_bytes
-            if download_diff < 0: # Contador reiniciou
-                # Assumimos que o contador é de 32 bits (4.294.967.295) para este exemplo
-                # Mas pode ser diferente para o seu router
-                download_diff = (2**32 - previous_rx_bytes) + current_rx_bytes
-                _LOGGER.warning("Rx Bytes counter for %s wrapped around. Old: %s, New: %s, Diff: %s", 
-                                interface, previous_rx_bytes, current_rx_bytes, download_diff)
-
-
-            upload_diff = current_tx_bytes - previous_tx_bytes
-            if upload_diff < 0: # Contador reiniciou
-                upload_diff = (2**32 - previous_tx_bytes) + current_tx_bytes
-                _LOGGER.warning("Tx Bytes counter for %s wrapped around. Old: %s, New: %s, Diff: %s", 
-                                interface, previous_tx_bytes, current_tx_bytes, upload_diff)
+            is_wifi = interface.startswith("wl") # Assumes Wi-Fi interfaces start with 'wl'
             
-            speeds[interface] = {
-                "download": download_diff / elapsed_seconds, # Bytes por segundo
-                "upload": upload_diff / elapsed_seconds,     # Bytes por segundo
-                "raw": curr_row["data"],                     # Dados brutos atuais
+            # --- Calculate speeds for individual interfaces ---
+            download_speed = 0
+            upload_speed = 0
+
+            # Only calculate speed if previous data exists and elapsed time is valid
+            if prev_row and elapsed_seconds > 0:
+                current_rx_bytes = curr_row["data"][API_RX_BYTES_IDX] if len(curr_row["data"]) > API_RX_BYTES_IDX else 0
+                previous_rx_bytes = prev_row["data"][API_RX_BYTES_IDX] if len(prev_row["data"]) > API_RX_BYTES_IDX else 0
+
+                current_tx_bytes = curr_row["data"][API_TX_BYTES_IDX] if len(curr_row["data"]) > API_TX_BYTES_IDX else 0
+                previous_tx_bytes = prev_row["data"][API_TX_BYTES_IDX] if len(prev_row["data"]) > API_TX_BYTES_IDX else 0
+                
+                download_diff = current_rx_bytes - previous_rx_bytes
+                if download_diff < 0: # Counter wrapped
+                    download_diff = (2**32 - previous_rx_bytes) + current_rx_bytes
+                    _LOGGER.warning("Rx Bytes counter for %s wrapped. Diff: %s", interface, download_diff)
+
+                upload_diff = current_tx_bytes - previous_tx_bytes
+                if upload_diff < 0: # Counter wrapped
+                    upload_diff = (2**32 - previous_tx_bytes) + current_tx_bytes
+                    _LOGGER.warning("Tx Bytes counter for %s wrapped. Diff: %s", interface, upload_diff)
+                
+                download_speed = download_diff / elapsed_seconds
+                upload_speed = upload_diff / elapsed_seconds
+            
+            speeds_per_interface[interface] = {
+                "download": download_speed,
+                "upload": upload_speed,
+                "raw": curr_row["data"],
             }
+
+            # --- Aggregate totals ---
+            if is_wifi:
+                total_wifi_download_speed += download_speed
+                total_wifi_upload_speed += upload_speed
+                for i, val in enumerate(curr_row["data"]):
+                    total_wifi_raw_data[i] += val
+            else: # Assuming it's Ethernet if not Wi-Fi
+                total_ethernet_download_speed += download_speed
+                total_ethernet_upload_speed += upload_speed
+                for i, val in enumerate(curr_row["data"]):
+                    total_ethernet_raw_data[i] += val
         
-        return speeds
+        # Calculate global totals
+        total_global_download_speed = total_ethernet_download_speed + total_wifi_download_speed
+        total_global_upload_speed = total_ethernet_upload_speed + total_wifi_upload_speed
+        
+        total_global_raw_data = [0] * 16
+        for i in range(16):
+            total_global_raw_data[i] = total_ethernet_raw_data[i] + total_wifi_raw_data[i]
+
+        return {
+            "interfaces": speeds_per_interface,
+            "totals": {
+                "ethernet_download_speed": total_ethernet_download_speed,
+                "ethernet_upload_speed": total_ethernet_upload_speed,
+                "wifi_download_speed": total_wifi_download_speed,
+                "wifi_upload_speed": total_wifi_upload_speed,
+                "global_download_speed": total_global_download_speed,
+                "global_upload_speed": total_global_upload_speed,
+                "ethernet_raw_data": total_ethernet_raw_data,
+                "wifi_raw_data": total_wifi_raw_data,
+                "global_raw_data": total_global_raw_data,
+            }
+        }
+
 
     async def async_get_stats(self) -> Dict[str, Any]:
         """Fetch and process router statistics."""
-        # Tentar obter o SESSIONID se ainda não tivermos um, ou se a chamada anterior falhou
-        # e indicou que o SESSIONID pode ter expirado.
-        # Por simplicidade, vamos re-autenticar se houver erro HTTP 401 ou se SESSIONID for None.
         if not self._session_id:
              try:
                  await self._authenticate()
              except Exception as e:
                  _LOGGER.error("Failed initial authentication: %s", e)
-                 raise # Propagar a exceção
+                 raise
 
         try:
             raw_data = await self._get_raw_stats()
         except aiohttp.ClientResponseError as e:
             if e.status == 401:
                 _LOGGER.warning("Authentication failed (401). Retrying authentication.")
-                self._session_id = None # Limpar SESSIONID para forçar nova autenticação
-                await self._authenticate() # Tentar novamente
-                raw_data = await self._get_raw_stats() # Tentar obter os dados novamente
+                self._session_id = None
+                await self._authenticate()
+                raw_data = await self._get_raw_stats()
             else:
-                raise # Re-raise other HTTP errors
+                raise
         except Exception as e:
             _LOGGER.error("Failed to get raw stats: %s", e)
-            raise # Re-raise other network/parsing errors
+            raise
 
         current_time = datetime.now()
         html_stats = raw_data.get("stats", "")
@@ -187,14 +235,14 @@ class RouterApiClient:
         if self._last_update_time:
             elapsed_seconds = (current_time - self._last_update_time).total_seconds()
 
-        calculated_speeds = self._calculate_speed(parsed_current_stats, elapsed_seconds)
+        # Call the new calculation and categorization method
+        processed_data = self._calculate_and_categorize_stats(parsed_current_stats, elapsed_seconds)
 
-        # Atualizar o estado anterior para a próxima iteração
+        # Update previous stats for the next cycle
         new_previous_stats = {}
         for row in parsed_current_stats:
             new_previous_stats[row["interface"]] = row
         self._previous_stats = new_previous_stats
         self._last_update_time = current_time
 
-        # Retornar os dados processados, incluindo velocidades e dados brutos
-        return calculated_speeds
+        return processed_data
