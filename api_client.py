@@ -155,14 +155,18 @@ class RouterApiClient:
                 previous_tx_bytes = prev_row["data"][API_TX_BYTES_IDX] if len(prev_row["data"]) > API_TX_BYTES_IDX else 0
                 
                 download_diff = current_rx_bytes - previous_rx_bytes
+                """
                 if download_diff < 0: # Counter wrapped
                     download_diff = (2**32 - previous_rx_bytes) + current_rx_bytes
                     _LOGGER.warning("Rx Bytes counter for %s wrapped. Diff: %s", interface, download_diff)
+                """
 
                 upload_diff = current_tx_bytes - previous_tx_bytes
+                """
                 if upload_diff < 0: # Counter wrapped
                     upload_diff = (2**32 - previous_tx_bytes) + current_tx_bytes
                     _LOGGER.warning("Tx Bytes counter for %s wrapped. Diff: %s", interface, upload_diff)
+                """
                 
                 download_speed = ((download_diff / (1024*1024)) / elapsed_seconds)   # Convert bytes to MB/s
                 upload_speed = ((upload_diff / (1024*1024)) / elapsed_seconds)  # Convert bytes to MB/s
