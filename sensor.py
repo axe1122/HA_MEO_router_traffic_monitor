@@ -227,18 +227,28 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class RouterTrafficSensorBase(CoordinatorEntity):
+class RouterTrafficSensorBase(CoordinatorEntity, SensorEntity): # <--- Adicione SensorEntity aqui
     """Base class for router traffic sensors."""
 
-    def __init__(self, coordinator: RouterTrafficSensorCoordinator, unique_suffix: str, name: str, **kwargs) -> None:
+    def __init__(
+        self,
+        coordinator: RouterTrafficSensorCoordinator,
+        unique_suffix: str,
+        name: str,
+        unit_of_measurement: str, # <--- Adicione aqui
+        device_class: SensorDeviceClass, # <--- Adicione aqui
+        state_class: SensorStateClass # <--- Adicione aqui
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_name = name
-        # Usar unique_suffix para garantir IDs únicos
         self._attr_unique_id = f"{DOMAIN}_{coordinator.config_entry.entry_id}_{unique_suffix}"
-        self._attr_device_class = kwargs.get("device_class")
-        self._attr_state_class = kwargs.get("state_class")
-        self._attr_unit_of_measurement = kwargs.get("unit_of_measurement")
+        
+        # --- ATUALIZE ESTAS LINHAS ---
+        self._attr_unit_of_measurement = unit_of_measurement
+        self._attr_device_class = device_class
+        self._attr_state_class = state_class
+        # --- FIM DA ATUALIZAÇÃO ---
 
         self._attr_device_info = {
             "identifiers": {(DOMAIN, self.coordinator.config_entry.entry_id)},
@@ -246,7 +256,6 @@ class RouterTrafficSensorBase(CoordinatorEntity):
             "model": "Generic Router",
             "manufacturer": "Unknown",
         }
-
 
 class RouterTrafficSpeedSensor(RouterTrafficSensorBase, SensorEntity):
     """Represents a router traffic speed sensor."""
