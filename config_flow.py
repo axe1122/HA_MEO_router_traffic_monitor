@@ -73,6 +73,7 @@ class RouterTrafficSensorConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
+    @staticmethod
     @callback
     def async_get_options_flow(self, config_entry):
         """Get the options flow for this handler."""
