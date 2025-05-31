@@ -262,15 +262,37 @@ class RouterTrafficSpeedSensor(RouterTrafficSensorBase, SensorEntity):
 
     def __init__(self, coordinator: RouterTrafficSensorCoordinator, interface: str, data_key: str, name: str, unit: str, device_class: SensorDeviceClass, state_class: SensorStateClass) -> None:
         """Initialize the speed sensor."""
+        # Note que a unit_of_measurement está a ser passada para o super().__init__
         super().__init__(coordinator, f"{interface}_{data_key}_speed", name, unit_of_measurement=unit, device_class=device_class, state_class=state_class)
         self._interface = interface
         self._data_key = data_key
+        # Armazenar a unidade para referência, se necessário na lógica de arredondamento
+        self._unit = unit 
 
     @property
     def native_value(self):
-        """Return the state of the sensor."""
+        """Return the state of the sensor, rounded."""
         # Aceder aos dados da interface individual
-        return self.coordinator.data.get("interfaces", {}).get(self._interface, {}).get(self._data_key, 0)
+        raw_value = self.coordinator.data.get("interfaces", {}).get(self._interface, {}).get(self._data_key, 0)
+        
+        # Verificar se o valor não é None e se é numérico antes de arredondar
+        if isinstance(raw_value, (int, float)):
+            # Determine o arredondamento com base na unidade ou nos valores esperados.
+            # Se a unidade for B/s (Bytes por segundo), talvez não precise de casas decimais
+            # para números grandes, ou 2 casas para valores menores.
+            if self._unit == UnitOfDataRate.BYTES_PER_SECOND: # Exemplo: 'B/s'
+                # Você pode optar por arredondar para o número inteiro mais próximo
+                return round(raw_value)
+            elif self._unit == UnitOfDataRate.MEGABYTES_PER_SECOND: # Exemplo: 'MB/s'
+                # Se o valor já estiver em MB/s e quer 2 casas decimais
+                return round(raw_value, 2)
+            elif self._unit == UnitOfDataRate.KILOBYTES_PER_SECOND: # Exemplo: 'kB/s'
+                # Se o valor já estiver em kB/s e quer 2 casas decimais
+                return round(raw_value, 2)
+            # Adicione mais condições conforme as unidades que você passa.
+            # Se não houver uma condição específica, arredonde para 2 casas decimais por padrão para velocidades
+            return round(raw_value, 2) 
+        return None
 
     @property
     def icon(self) -> str | None:
