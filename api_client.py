@@ -9,6 +9,11 @@ from typing import Dict, List, Any, Optional
 import aiohttp
 from bs4 import BeautifulSoup
 
+# --- ADICIONE ESTAS DUAS LINHAS ---
+from .const import API_RX_BYTES_IDX, API_TX_BYTES_IDX 
+# Certifique-se de que DOMAIN, CONF_HOST, etc., se forem usados aqui, também são importados de const.py
+# --- FIM DA ADIÇÃO ---
+
 _LOGGER = logging.getLogger(__name__)
 
 # --- Mantém o restante da classe RouterApiClient igual até aqui ---
