@@ -155,22 +155,18 @@ class RouterApiClient:
                 previous_tx_bytes = prev_row["data"][API_TX_BYTES_IDX] if len(prev_row["data"]) > API_TX_BYTES_IDX else 0
                 
                 download_diff = current_rx_bytes - previous_rx_bytes
-                """
                 if download_diff < 0: # Counter wrapped
                     download_diff = (2**32 - previous_rx_bytes) + current_rx_bytes
                     _LOGGER.warning("Rx Bytes counter for %s wrapped. Diff: %s", interface, download_diff)
-                """
 
                 upload_diff = current_tx_bytes - previous_tx_bytes
-                """
                 if upload_diff < 0: # Counter wrapped
                     upload_diff = (2**32 - previous_tx_bytes) + current_tx_bytes
                     _LOGGER.warning("Tx Bytes counter for %s wrapped. Diff: %s", interface, upload_diff)
-                """
                 
-                download_speed = ((download_diff / (1024*1024)) / elapsed_seconds)   # Convert bytes to MB/s
-                upload_speed = ((upload_diff / (1024*1024)) / elapsed_seconds)  # Convert bytes to MB/s
-
+                download_speed = ((upload_diff / (1024*1024)) / elapsed_seconds)   # Convert bytes to MB/s
+                upload_speed = ((download_diff / (1024*1024)) / elapsed_seconds)  # Convert bytes to MB/s
+            
             speeds_per_interface[interface] = {                                
                 "download": download_speed ,  # Convert bytes to MB
                 "upload": upload_speed,      # Convert bytes to MB
@@ -197,20 +193,20 @@ class RouterApiClient:
         for i in range(16):
             total_global_raw_data[i] = total_ethernet_raw_data[i] + total_wifi_raw_data[i]
 
-        # Prepare the final structured data
-        structured_data = {
+        return {
             "interfaces": speeds_per_interface,
             "totals": {
-                "ethernet_download": total_ethernet_download_speed,
-                "ethernet_upload": total_ethernet_upload_speed,
-                "wifi_download": total_wifi_download_speed,
-                "wifi_upload": total_wifi_upload_speed,
-                "global_download": total_global_download_speed,
-                "global_upload": total_global_upload_speed,
+                "ethernet_download_speed": total_ethernet_download_speed,
+                "ethernet_upload_speed": total_ethernet_upload_speed,
+                "wifi_download_speed": total_wifi_download_speed,
+                "wifi_upload_speed": total_wifi_upload_speed,
+                "global_download_speed": total_global_download_speed,
+                "global_upload_speed": total_global_upload_speed,
+                "ethernet_raw_data": total_ethernet_raw_data,
+                "wifi_raw_data": total_wifi_raw_data,
+                "global_raw_data": total_global_raw_data,
             }
         }
-        _LOGGER.warning(structured_data)
-        return  structured_data
 
 
     async def async_get_stats(self) -> Dict[str, Any]:
