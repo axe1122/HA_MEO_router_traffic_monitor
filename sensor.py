@@ -34,7 +34,7 @@ async def async_setup_entry(
                 interface_name,
                 "download",
                 f"Router {interface_name} Download Speed",
-                UnitOfDataRate.BYTES_PER_SECOND,
+                UnitOfDataRate.MEGABYTES_PER_SECOND,
                 SensorDeviceClass.DATA_RATE,
                 SensorStateClass.MEASUREMENT,
             )
@@ -46,7 +46,7 @@ async def async_setup_entry(
                 interface_name,
                 "upload",
                 f"Router {interface_name} Upload Speed",
-                UnitOfDataRate.BYTES_PER_SECOND,
+                UnitOfDataRate.MEGABYTES_PER_SECOND,
                 SensorDeviceClass.DATA_RATE,
                 SensorStateClass.MEASUREMENT,
             )
@@ -292,7 +292,7 @@ class RouterTrafficSpeedSensor(RouterTrafficSensorBase, SensorEntity):
             # Adicione mais condições conforme as unidades que você passa.
             # Se não houver uma condição específica, arredonde para 2 casas decimais por padrão para velocidades
             return round(raw_value, 2) 
-        return None
+        return 0
 
     @property
     def icon(self) -> str | None:
