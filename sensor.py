@@ -145,7 +145,7 @@ async def async_setup_entry(
             "global",
             "upload_speed",
             "Router Global Upload Speed",
-            UnitOfDataRate.MEGABYTES_PER_SECOND,
+            UnitOfDataRate.BYTES_PER_SECOND,
             SensorDeviceClass.DATA_RATE,
             SensorStateClass.MEASUREMENT,
         )
@@ -268,9 +268,6 @@ class RouterTrafficSpeedSensor(RouterTrafficSensorBase, SensorEntity):
         self._data_key = data_key
         # Armazenar a unidade para referência, se necessário na lógica de arredondamento
         self._unit = unit 
-        self._attr_native_unit_of_measurement = unit  # Define a unidade nativa do sensor
-        self._attr_device_class = device_class
-        self._attr_state_class = SensorStateClass.MEASUREMENT
 
     @property
     def native_value(self):
@@ -324,9 +321,6 @@ class RouterTotalTrafficSpeedSensor(RouterTrafficSensorBase, SensorEntity):
         super().__init__(coordinator, f"total_{category}_{data_key}", name, unit_of_measurement=unit, device_class=device_class, state_class=state_class)
         self._category = category # 'ethernet', 'wifi', 'global'
         self._data_key = f"{category}_{data_key}" # ex: 'ethernet_download_speed'
-        self._attr_native_unit_of_measurement = unit  # Define a unidade nativa do sensor
-        self._attr_device_class = device_class
-        self._attr_state_class = SensorStateClass.MEASUREMENT
 
     @property
     def native_value(self):
