@@ -145,7 +145,7 @@ async def async_setup_entry(
             "global",
             "upload_speed",
             "Router Global Upload Speed",
-            UnitOfDataRate.BYTES_PER_SECOND,
+            UnitOfDataRate.MEGABYTES_PER_SECOND,
             SensorDeviceClass.DATA_RATE,
             SensorStateClass.MEASUREMENT,
         )
