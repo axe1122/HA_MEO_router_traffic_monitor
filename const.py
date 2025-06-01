@@ -9,7 +9,7 @@ from homeassistant.const import (
 )
 
 DOMAIN = "HA_MEO_router_traffic_monitor" # Mantenha o seu domínio consistente com a pasta!
-DEFAULT_SCAN_INTERVAL_SECONDS = 5 # 5 minutos (300 segundos) como padrão
+DEFAULT_SCAN_INTERVAL_SECONDS = 2 # 5 minutos (300 segundos) como padrão
 
 # Nomes das colunas na API (ajuste conforme necessário)
 # ... (seus índices da tabela HTML)
